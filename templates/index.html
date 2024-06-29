@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MC/MX Number Scraper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        label, input, button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        input, button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .loader {
+            display: none;
+            border: 5px solid #f3f3f3; /* Light grey */
+            border-top: 5px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #3498db;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .counter-container {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .counter {
+            font-size: 48px;
+            color: #e74c3c;
+            transition: transform 0.5s ease;
+        }
+        .counter:empty::before {
+            content: "0";
+        }
+        .percentage {
+            font-size: 20px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>MC/MX Number Scraper</h1>
+    <div id="loader" class="loader">
+        <div id="loader-percentage" class="percentage">0%</div>
+    </div>
+    <form id="scrapeForm" action="/scrape" method="post">
+        <label for="start_mc_mx_number">Starting MC/MX Number:</label>
+        <input type="text" id="start_mc_mx_number" name="start_mc_mx_number" required>
+        <br>
+        <label for="end_mc_mx_number">Ending MC/MX Number:</label>
+        <input type="text" id="end_mc_mx_number" name="end_mc_mx_number" required>
+        <br>
+        <button type="submit">Scrape</button>
+    </form>
+
+    <div class="counter-container">
+        <div id="progressMsg">Total data extracted:</div>
+        <div id="counter" class="counter"></div>
+    </div>
+
+    <script>
+        document.getElementById("scrapeForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            var form = this;
+            var formData = new FormData(form);
+
+            // Show loader
+            document.getElementById("loader").style.display = "block";
+          
+            // AJAX request to handle form submission
+            var xhr = new XMLHttpRequest();
+            xhr.open(form.method, form.action, true);
+            
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    // Handle response
+                    var response = JSON.parse(xhr.responseText);
+                    var redirectUrl = response.redirect_url;
+
+                    // Redirect to download page
+                    window.location.href = redirectUrl;
+                    
+                    // Hide loader after finishing
+                    document.getElementById("loader").style.display = "none";
+                } else {
+                    // Handle errors if any
+                    alert('Failed to scrape data. Please try again.');
+                    document.getElementById("loader").style.display = "none";
+                }
+            };
+            xhr.onerror = function() {
+                // Handle network errors
+                alert('Failed to scrape data. Please check your network connection.');
+                document.getElementById("loader").style.display = "none";
+            };
+            xhr.send(formData);
+        });
+
+        // Function to handle SSE updates
+        function initializeSSE() {
+            var eventSource = new EventSource('/updates');
+            eventSource.onmessage = function(event) {
+                var totalExtracted = event.data;
+                var counter = document.getElementById('counter');
+                counter.textContent = totalExtracted;
+
+                // Add animation effect
+                counter.style.transform = 'scale(1.2)';
+                setTimeout(function() {
+                    counter.style.transform = 'scale(1)';
+                }, 500);
+
+                // Update loader percentage
+                var start_mc_mx_number = parseInt(document.getElementById('start_mc_mx_number').value);
+                var end_mc_mx_number = parseInt(document.getElementById('end_mc_mx_number').value);
+                var total_numbers = end_mc_mx_number - start_mc_mx_number + 1;
+                var percentage = Math.min((totalExtracted / total_numbers) * 100, 100).toFixed(2);
+
+                document.getElementById('loader-percentage').textContent = percentage + '%';
+            };
+        }
+
+        // Initialize SSE on page load
+        window.onload = initializeSSE;
+    </script>
+</body>
+</html>
