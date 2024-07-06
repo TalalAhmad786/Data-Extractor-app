@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
 from flask import send_from_directory
 import threading
+import os
 import queue
 import time
 from selenium import webdriver
@@ -37,13 +38,20 @@ def scrape():
     start_mc_mx_number = request.form['start_mc_mx_number']
     end_mc_mx_number = request.form.get('end_mc_mx_number')
 
+    # CHROMEDRIVER_PATH = 'https://storage.googleapis.com/chrome-for-testing-public/126.0.6478.126/win64/chromedriver-win64.zip'
+
     chrome_options = Options()
     # chrome_options.add_argument('--headless')
+    chrome_options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
     chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
     chrome_options.add_experimental_option('useAutomationExtension', False)
 
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=chrome_options)
     all_data = []
     counter = 0
     total_extracted = 0
